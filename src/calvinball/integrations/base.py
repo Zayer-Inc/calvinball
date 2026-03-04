@@ -27,8 +27,17 @@ class BaseIntegration(ABC):
     async def execute_query(self, query: str) -> list[dict[str, Any]]: ...
 
     @abstractmethod
-    async def get_schema_info(self) -> str:
-        """Return a text description of tables/columns for the LLM."""
+    async def get_schema_info(
+        self,
+        schemas: list[str] | None = None,
+        databases: list[str] | None = None,
+    ) -> str:
+        """Return a text description of tables/columns for the LLM.
+
+        Args:
+            schemas: Optional list of schema names to include. None means all schemas.
+            databases: Optional list of database names to include. None means all accessible databases.
+        """
         ...
 
     @property

@@ -132,6 +132,8 @@ async def run_investigation(
     depth: str = "normal",
     resume_id: str | None = None,
     interactive: bool = True,
+    schemas: list[str] | None = None,
+    databases: list[str] | None = None,
 ) -> None:
     """Run the autonomous investigation loop, optionally followed by interactive chat."""
     settings = Settings.load()
@@ -142,9 +144,9 @@ async def run_investigation(
     _register_integration_tools(registry)
 
     # Build system prompt
-    data_sources = await _get_data_sources_description()
+    data_sources = await _get_data_sources_description(schemas=schemas, databases=databases)
     memory_facts = await _get_memory_facts()
-    system_prompt = build_system_prompt(data_sources, memory_facts, depth)
+    system_prompt = build_system_prompt(data_sources, memory_facts, depth, schemas=schemas, databases=databases)
 
     # Initialize or resume message history
     if resume_id:
@@ -237,12 +239,15 @@ def _register_integration_tools(registry: ToolRegistry) -> None:
                 pass
 
 
-async def _get_data_sources_description() -> str:
+async def _get_data_sources_description(
+    schemas: list[str] | None = None,
+    databases: list[str] | None = None,
+) -> str:
     """Get descriptions of connected data sources."""
     try:
         from calvinball.integrations.manager import IntegrationManager
         mgr = IntegrationManager()
-        return await mgr.describe_all()
+        return await mgr.describe_all(schemas=schemas, databases=databases)
     except Exception:
         return ""
 

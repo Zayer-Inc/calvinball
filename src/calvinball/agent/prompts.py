@@ -31,6 +31,8 @@ def build_system_prompt(
     data_sources: str = "",
     memory_facts: str = "",
     depth: str = "normal",
+    schemas: list[str] | None = None,
+    databases: list[str] | None = None,
 ) -> str:
     parts = [SYSTEM_PROMPT]
 
@@ -40,6 +42,14 @@ def build_system_prompt(
         "deep": "Go deep. Follow every thread. Leave no stone unturned.",
     }
     parts.append(f"\n**Investigation depth**: {depth_guidance.get(depth, depth_guidance['normal'])}")
+
+    if databases or schemas:
+        scope_parts = []
+        if databases:
+            scope_parts.append(f"databases: {', '.join(databases)}")
+        if schemas:
+            scope_parts.append(f"schemas: {', '.join(schemas)}")
+        parts.append(f"\n**Scope restriction**: Restrict all queries to {'; '.join(scope_parts)}. Do not query tables outside this scope.")
 
     if data_sources:
         parts.append(f"\n**Available data sources**:\n{data_sources}")

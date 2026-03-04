@@ -11,7 +11,7 @@ src/calvinball/
 ├── cli/              # Typer CLI commands
 │   ├── app.py        # Main Typer app, registers all commands
 │   ├── connect.py    # `calvinball connect` with interactive wizard
-│   ├── investigate.py# `calvinball investigate` entry point
+│   ├── investigate.py# `calvinball investigate` entry point (--databases, --schemas, --depth, --resume, --no-chat)
 │   ├── status.py     # `calvinball status`
 │   ├── config_cmd.py # `calvinball config init|show|set`
 │   └── keygen.py     # RSA key pair generation for Snowflake
@@ -66,10 +66,11 @@ src/calvinball/
 
 ## How integrations work
 
-- `BaseIntegration` defines: `connect(config)`, `disconnect()`, `execute_query(query)`, `get_schema_info()`
+- `BaseIntegration` defines: `connect(config)`, `disconnect()`, `execute_query(query)`, `get_schema_info(schemas, databases)`
 - `IntegrationManager` creates instances, calls `connect()`, and persists config to SQLite
 - On next run, `load_from_db()` reconnects saved integrations automatically
 - The config dict is opaque JSON — each integration type defines its own keys
+- `get_schema_info()` accepts optional `databases` and `schemas` lists to filter what's surfaced to the agent. For Snowflake it runs `SHOW DATABASES` then `SHOW TABLES IN DATABASE <db>` for each accessible database, silently skipping any it can't access.
 
 ## How tools work
 
