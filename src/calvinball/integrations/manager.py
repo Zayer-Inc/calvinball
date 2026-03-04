@@ -81,7 +81,11 @@ class IntegrationManager:
             except Exception:
                 pass  # Skip integrations that fail to reconnect
 
-    async def describe_all(self) -> str:
+    async def describe_all(
+        self,
+        schemas: list[str] | None = None,
+        databases: list[str] | None = None,
+    ) -> str:
         """Get schema descriptions from all connected integrations."""
         if not self._integrations:
             await self.load_from_db()
@@ -90,7 +94,7 @@ class IntegrationManager:
         for name, integration in self._integrations.items():
             if integration.connected:
                 try:
-                    desc = await integration.get_schema_info()
+                    desc = await integration.get_schema_info(schemas=schemas, databases=databases)
                     descriptions.append(f"[{name}] {desc}")
                 except Exception as e:
                     descriptions.append(f"[{name}] Error: {e}")

@@ -93,6 +93,8 @@ Options:
 - `--depth [shallow|normal|deep]` — controls how thorough the investigation is (default: `normal`)
 - `--resume <id>` — pick up a previous investigation where it left off
 - `--no-chat` — skip the interactive follow-up after the investigation
+- `--databases <DB1,DB2>` — restrict the investigation to specific Snowflake databases (e.g. `ANALYTICS,AIRLINES`). By default the agent can see all databases your role has access to.
+- `--schemas <SCHEMA1,SCHEMA2>` — further restrict to specific schemas within those databases (e.g. `PUBLIC,REPORTING`)
 
 ### Check status
 

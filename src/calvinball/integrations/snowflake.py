@@ -91,19 +91,65 @@ class SnowflakeIntegration(BaseIntegration):
 
         return await asyncio.to_thread(_run)
 
-    async def get_schema_info(self) -> str:
+    async def get_schema_info(
+        self,
+        schemas: list[str] | None = None,
+        databases: list[str] | None = None,
+    ) -> str:
         if not self._conn:
             return "Snowflake: not connected"
 
-        tables = await self.execute_query("SHOW TABLES")
-        if not tables:
-            return "Snowflake: no tables found"
+        # Normalize filters to uppercase (Snowflake identifiers are case-insensitive)
+        allowed_databases = {d.upper() for d in databases} if databases else None
+        allowed_schemas = {s.upper() for s in schemas} if schemas else None
+
+        # Discover which databases to inspect
+        try:
+            db_rows = await self.execute_query("SHOW DATABASES")
+            all_databases = [
+                r.get("name", r.get("DATABASE_NAME", ""))
+                for r in db_rows
+                if r.get("name") or r.get("DATABASE_NAME")
+            ]
+        except Exception:
+            # Fall back to the configured database if SHOW DATABASES fails
+            configured = self._config.get("database")
+            all_databases = [configured] if configured else []
+
+        if allowed_databases:
+            all_databases = [d for d in all_databases if d.upper() in allowed_databases]
+
+        if not all_databases:
+            return "Snowflake: no accessible databases found"
 
         lines = ["Snowflake tables:"]
-        for t in tables[:50]:  # Cap at 50 tables
-            table_name = t.get("name", t.get("TABLE_NAME", "unknown"))
-            db = t.get("database_name", t.get("TABLE_CATALOG", ""))
-            schema = t.get("schema_name", t.get("TABLE_SCHEMA", ""))
-            lines.append(f"  - {db}.{schema}.{table_name}")
+        count = 0
+        for db in all_databases:
+            try:
+                tables = await self.execute_query(f"SHOW TABLES IN DATABASE {db}")
+            except Exception:
+                continue  # Skip databases we can't access
+
+            for t in tables:
+                table_name = t.get("name", t.get("TABLE_NAME", "unknown"))
+                schema = t.get("schema_name", t.get("TABLE_SCHEMA", ""))
+
+                if allowed_schemas and schema.upper() not in allowed_schemas:
+                    continue
+
+                lines.append(f"  - {db}.{schema}.{table_name}")
+                count += 1
+                if count >= 500:
+                    lines.append("  (truncated — more tables exist)")
+                    return "\n".join(lines)
+
+        if count == 0:
+            filters = []
+            if databases:
+                filters.append(f"databases: {', '.join(databases)}")
+            if schemas:
+                filters.append(f"schemas: {', '.join(schemas)}")
+            scope = "; ".join(filters) if filters else "any"
+            return f"Snowflake: no tables found in scope ({scope})"
 
         return "\n".join(lines)
