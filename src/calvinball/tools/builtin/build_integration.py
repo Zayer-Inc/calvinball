@@ -66,12 +66,16 @@ class BuildIntegrationTool(BaseTool):
                 description=description, requirements=requirements
             )
 
-            response = await litellm.acompletion(
-                model=settings.llm.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=4096,
-            )
+            from calvinball.llm.client import _supports_temperature
+
+            completion_kwargs: dict[str, Any] = {
+                "model": settings.llm.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 4096,
+            }
+            if _supports_temperature(settings.llm.model):
+                completion_kwargs["temperature"] = 0.1
+            response = await litellm.acompletion(**completion_kwargs)
 
             code = response.choices[0].message.content.strip()
             # Strip markdown fences if present
