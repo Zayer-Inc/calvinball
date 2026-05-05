@@ -29,10 +29,17 @@ class LLMClient:
         kwargs: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
-            "temperature": self.temperature,
             "max_tokens": self.max_tokens,
         }
+        if _supports_temperature(self.model):
+            kwargs["temperature"] = self.temperature
         if tools:
             kwargs["tools"] = tools
         response = await litellm.acompletion(**kwargs)
         return response
+
+
+def _supports_temperature(model: str) -> bool:
+    """Some newer models (e.g. Claude Opus 4.7) reject the temperature param."""
+    name = model.lower()
+    return "opus-4-7" not in name and "opus-4.7" not in name
